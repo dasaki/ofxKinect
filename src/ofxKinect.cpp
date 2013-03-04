@@ -96,8 +96,8 @@ bool ofxKinect::init(bool infrared, bool video, bool texture) {
 
 	clear();
 
-    bIsVideoInfrared = infrared;
-    bHighResIR = bIsVideoInfrared && (videoResolution == FREENECT_RESOLUTION_HIGH);
+    	bIsVideoInfrared = infrared;
+    	bHighResIR = bIsVideoInfrared && (videoResolution == FREENECT_RESOLUTION_HIGH);
 	bGrabVideo = video;
 	videoBytesPerPixel = infrared?1:3;
 
