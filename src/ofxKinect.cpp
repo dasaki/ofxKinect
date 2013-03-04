@@ -19,15 +19,15 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
-    
+
     ----------------------------------------------------------------------------
-    
+
     This project uses libfreenect, copyrighted by the Open Kinect Project using
     the Apache License v2. See the file "APACHE20" in libs/libfreenect.
-    
-    See http://www.openkinect.org & https://github.com/OpenKinect/libfreenect 
+
+    See http://www.openkinect.org & https://github.com/OpenKinect/libfreenect
     for documentation
-    
+
 ==============================================================================*/
 #include "ofxKinect.h"
 #include "ofMain.h"
@@ -45,7 +45,7 @@ ofxKinect::ofxKinect() {
 
 	deviceId = -1;
 	serial = "";
-	
+
 	bUseTexture = true;
 	bGrabVideo = true;
 
@@ -55,7 +55,7 @@ ofxKinect::ofxKinect() {
 	bNeedsUpdate = false;
 	bUpdateTex = false;
 	bIsFrameNew = false;
-    
+
 	bIsVideoInfrared = false;
 	videoBytesPerPixel = 3;
 
@@ -64,10 +64,10 @@ ofxKinect::ofxKinect() {
 	targetTiltAngleDeg = 0;
 	currentTiltAngleDeg = 0;
 	bTiltNeedsApplying = false;
-    
+
     currentLed = -1;
     bLedNeedsApplying = false;
-	
+
 	lastDeviceId = -1;
 	tryCount = 0;
 	timeSinceOpen = 0;
@@ -77,7 +77,7 @@ ofxKinect::ofxKinect() {
 	bNearWhite = true;
 
 	setDepthClipping();
-	setResolution(FREENECT_RESOLUTION_MEDIUM);
+	setVideoResolution(FREENECT_RESOLUTION_MEDIUM);
 }
 
 //--------------------------------------------------------------------
@@ -118,7 +118,7 @@ bool ofxKinect::init(bool infrared, bool video, bool texture) {
 	videoPixels.set(0);
 	videoPixelsBack.set(0);
 
-	depthPixels.set(0);    
+	depthPixels.set(0);
 	distancePixels.set(0);
 
 	if(bUseTexture) {
@@ -159,9 +159,9 @@ void ofxKinect::clear() {
 	bGrabberInited = false;
 }
 //--------------------------------------------------------------------
-bool ofxKinect::setResolution(freenect_resolution newResolution) {
+bool ofxKinect::setVideoResolution(freenect_resolution newResolution) {
     if (!bGrabberInited) {
-        resolution = newResolution;
+        videoResolution = newResolution;
         if (videoResolution == FREENECT_RESOLUTION_MEDIUM) {
             videoWidth = 640;
             videoHeight = 480;
@@ -208,21 +208,21 @@ bool ofxKinect::open(string serial) {
 		ofLog(OF_LOG_WARNING, "ofxKinect: Cannot open, init not called");
 		return false;
 	}
-	
+
 	if(!kinectContext.open(*this, serial)) {
 		return false;
 	}
-	
+
 	lastDeviceId = deviceId;
 	timeSinceOpen = ofGetElapsedTimef();
 	bGotData = false;
-	
+
 	freenect_set_user(kinectDevice, this);
 	freenect_set_depth_callback(kinectDevice, &grabDepthFrame);
 	freenect_set_video_callback(kinectDevice, &grabVideoFrame);
-	
+
 	startThread(true, false); // blocking, not verbose
-	
+
 	return true;
 }
 
@@ -542,6 +542,16 @@ float ofxKinect::getWidth() {
 }
 
 //----------------------------------------------------------
+float ofxKinect::getVideoHeight() {
+	return (float) videoHeight;
+}
+
+//---------------------------------------------------------------------------
+float ofxKinect::getVideoWidth() {
+	return (float) videoWidth;
+}
+
+//----------------------------------------------------------
 void ofxKinect::listDevices() {
 	kinectContext.listDevices();
 }
@@ -637,10 +647,10 @@ void ofxKinect::grabVideoFrame(freenect_device *dev, void *video, uint32_t times
 //---------------------------------------------------------------------------
 void ofxKinect::threadedFunction(){
 
-	if (currentLed < 0) { 
-        freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_GREEN); 
+	if (currentLed < 0) {
+        freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_GREEN);
     }
-	
+
 	freenect_frame_mode videoMode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, bIsVideoInfrared?FREENECT_VIDEO_IR_8BIT:FREENECT_VIDEO_RGB);
 	freenect_set_video_mode(kinectDevice, videoMode);
 	freenect_frame_mode depthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, bUseRegistration?FREENECT_DEPTH_REGISTERED:FREENECT_DEPTH_MM);
@@ -660,12 +670,12 @@ void ofxKinect::threadedFunction(){
 	}
 
 	while(isThreadRunning()) {
-		
+
 		if(bTiltNeedsApplying) {
 			freenect_set_tilt_degs(kinectDevice, targetTiltAngleDeg);
 			bTiltNeedsApplying = false;
 		}
-		
+
 		if(bLedNeedsApplying) {
 			if(currentLed == ofxKinect::LED_DEFAULT) {
 				freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_GREEN);
@@ -698,8 +708,8 @@ void ofxKinect::threadedFunction(){
 
 	freenect_stop_depth(kinectDevice);
 	freenect_stop_video(kinectDevice);
-	if (currentLed < 0) { 
-        freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_YELLOW); 
+	if (currentLed < 0) {
+        freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_YELLOW);
     }
 
 	kinectContext.close(*this);
@@ -724,10 +734,10 @@ ofxKinectContext::~ofxKinectContext() {
 static bool sortKinectPairs(ofxKinectContext::KinectPair A, ofxKinectContext::KinectPair B){
 	return A.serial < B.serial;
 }
-        
+
 //---------------------------------------------------------------------------
 bool ofxKinectContext::init() {
-	
+
 	if(freenect_init(&kinectContext, NULL) < 0) {
 		ofLog(OF_LOG_ERROR, "ofxKinect: freenect_init failed");
 		bInited = false;
@@ -736,7 +746,7 @@ bool ofxKinectContext::init() {
 
 	bInited = true;
 	ofLog(OF_LOG_VERBOSE, "ofxKinect: Context inited");
-	
+
 	buildDeviceList();
 	listDevices(true);
 
@@ -758,15 +768,15 @@ bool ofxKinectContext::isInited() {
 }
 
 bool ofxKinectContext::open(ofxKinect& kinect, int id) {
-	
+
 	// rebuild if necessary (aka new kinects plugged in)
 	buildDeviceList();
-	
+
 	if(numConnected() >= numTotal()) {
 		ofLog(OF_LOG_WARNING, "ofxKinect: No available devices found");
 		return false;
 	}
-	
+
 	// is the id available?
 	if(id < 0) {
 		id = nextAvailableId();
@@ -775,14 +785,14 @@ bool ofxKinectContext::open(ofxKinect& kinect, int id) {
 		ofLog(OF_LOG_WARNING, "ofxKinect: Device %d already connected", id);
 		return false;
 	}
-	
+
 	// open and add to vector
 	if(freenect_open_device(kinectContext, &kinect.kinectDevice, id) < 0) {
 		ofLog(OF_LOG_ERROR, "ofxKinect: Could not open device %d", id);
 		return false;
 	}
 	kinects.insert(pair<int,ofxKinect*>(id, &kinect));
-	
+
 	// set kinect id & serial from bus id
 	kinect.deviceId = id;
 	kinect.serial = deviceList[getDeviceIndex(id)].serial;
@@ -791,21 +801,21 @@ bool ofxKinectContext::open(ofxKinect& kinect, int id) {
 }
 
 bool ofxKinectContext::open(ofxKinect& kinect, string serial) {
-	
+
 	// rebuild if necessary (aka new kinects plugged in)
 	buildDeviceList();
-	
+
 	if(numConnected() >= numTotal()) {
 		ofLog(OF_LOG_WARNING, "ofxKinect: No available devices found");
 		return false;
 	}
-	
+
 	// is the serial available?
 	if(isConnected(serial)) {
 		ofLog(OF_LOG_WARNING, "ofxKinect: Device %s already connected", serial.c_str());
 		return false;
 	}
-	
+
 	// open and add to vector
 	if(freenect_open_device_by_camera_serial(kinectContext, &kinect.kinectDevice, serial.c_str()) < 0) {
 		ofLog(OF_LOG_ERROR, "ofxKinect: Could not open device %s", serial.c_str());
@@ -815,7 +825,7 @@ bool ofxKinectContext::open(ofxKinect& kinect, string serial) {
 	kinects.insert(pair<int,ofxKinect*>(deviceList[index].id, &kinect));
 	kinect.deviceId = deviceList[index].id;
 	kinect.serial = serial;
-	
+
 	return true;
 }
 
@@ -850,23 +860,23 @@ void ofxKinectContext::closeAll() {
 
 //---------------------------------------------------------------------------
 void ofxKinectContext::buildDeviceList() {
-	
+
 	deviceList.clear();
-	
+
 	// build the device list from freenect
-	freenect_device_attributes * devAttrib; 
+	freenect_device_attributes * devAttrib;
 	int numDevices = freenect_list_device_attributes(kinectContext, &devAttrib);
-	
+
 	// save bus ids ...
 	for(int i = 0; i < numDevices; i++){
 		KinectPair kp;
 		kp.id = i;
-		kp.serial = (string) devAttrib->camera_serial; 
+		kp.serial = (string) devAttrib->camera_serial;
 		deviceList.push_back(kp);
 		devAttrib = devAttrib->next;
 	}
 	freenect_free_device_attributes(devAttrib);
-	
+
 	// sort devices by serial number
 	sort(deviceList.begin(), deviceList.end(), sortKinectPairs);
 }
@@ -874,9 +884,9 @@ void ofxKinectContext::buildDeviceList() {
 void ofxKinectContext::listDevices(bool verbose) {
     if(!isInited())
 		init();
-	
+
 	stringstream stream;
-	
+
 	if(numTotal() == 0) {
 		stream << "ofxKinect: No devices found";
 		return;
@@ -887,7 +897,7 @@ void ofxKinectContext::listDevices(bool verbose) {
 	else {
 		stream << "ofxKinect: " << deviceList.size() << " devices found";
 	}
-	
+
 	if(verbose) {
 		ofLog(OF_LOG_VERBOSE, stream.str());
 	}
@@ -895,7 +905,7 @@ void ofxKinectContext::listDevices(bool verbose) {
 		cout << stream.str() << endl;
 	}
 	stream.str("");
-	
+
 	for(int i = 0; i < deviceList.size(); ++i) {
 		stream << "    id: " << deviceList[i].id << " serial: " << deviceList[i].serial;
 		if(verbose) {
@@ -966,7 +976,7 @@ bool ofxKinectContext::isConnected(string serial) {
 int ofxKinectContext::nextAvailableId() {
 	if(!isInited())
 		init();
-	
+
 	// a brute force free index finder :D
 	std::map<int,ofxKinect*>::iterator iter;
 	for(int i = 0; i < deviceList.size(); ++i) {
@@ -980,11 +990,12 @@ int ofxKinectContext::nextAvailableId() {
 string ofxKinectContext::nextAvailableSerial() {
 	if(!isInited())
 		init();
-	
+
 	int id = nextAvailableId();
 	if(id == -1) {
 		return "";
 	}
 	return deviceList[getDeviceIndex(id)].serial;
 }
+
 
