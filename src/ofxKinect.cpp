@@ -77,6 +77,7 @@ ofxKinect::ofxKinect() {
 	bNearWhite = true;
 
 	setDepthClipping();
+	setResolution(FREENECT_RESOLUTION_MEDIUM);
 }
 
 //--------------------------------------------------------------------
@@ -157,7 +158,21 @@ void ofxKinect::clear() {
 
 	bGrabberInited = false;
 }
-
+//--------------------------------------------------------------------
+bool ofxKinect::setResolution(freenect_resolution newResolution) {
+    if (!bGrabberInited) {
+        resolution = newResolution;
+        if (videoResolution == FREENECT_RESOLUTION_MEDIUM) {
+            videoWidth = 640;
+            videoHeight = 480;
+        }
+        else if (videoResolution == FREENECT_RESOLUTION_HIGH) {
+            videoWidth = 1280;
+            videoHeight = 1024;
+        }
+    }
+    return !bGrabberInited;
+}
 //--------------------------------------------------------------------
 void ofxKinect::setRegistration(bool bUseRegistration) {
 	this->bUseRegistration = bUseRegistration;
