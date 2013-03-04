@@ -57,6 +57,7 @@ ofxKinect::ofxKinect() {
 	bIsFrameNew = false;
 
 	bIsVideoInfrared = false;
+	bHighResIR = false;
 	videoBytesPerPixel = 3;
 
 	kinectDevice = NULL;
@@ -95,7 +96,8 @@ bool ofxKinect::init(bool infrared, bool video, bool texture) {
 
 	clear();
 
-	bIsVideoInfrared = infrared;
+    bIsVideoInfrared = infrared;
+    bHighResIR = bIsVideoInfrared && (videoResolution == FREENECT_RESOLUTION_HIGH);
 	bGrabVideo = video;
 	videoBytesPerPixel = infrared?1:3;
 
@@ -105,8 +107,8 @@ bool ofxKinect::init(bool infrared, bool video, bool texture) {
 	depthPixelsRaw.allocate(width, height, 1);
 	depthPixelsRawBack.allocate(width, height, 1);
 
-	videoPixels.allocate(width, height, videoBytesPerPixel);
-	videoPixelsBack.allocate(width, height, videoBytesPerPixel);
+	videoPixels.allocate(videoWidth, videoHeight, videoBytesPerPixel);
+	videoPixelsBack.allocate(videoWidth, videoHeight, videoBytesPerPixel);
 
 	depthPixels.allocate(width, height, 1);
 	distancePixels.allocate(width, height, 1);
@@ -123,7 +125,7 @@ bool ofxKinect::init(bool infrared, bool video, bool texture) {
 
 	if(bUseTexture) {
 		depthTex.allocate(width, height, GL_LUMINANCE);
-		videoTex.allocate(width, height, infrared ? GL_LUMINANCE : GL_RGB);
+		videoTex.allocate(videoWidth, videoHeight, infrared ? GL_LUMINANCE : GL_RGB);
 	}
 
 	if(!kinectContext.isInited()) {
@@ -194,7 +196,7 @@ bool ofxKinect::open(int id) {
 	bGotData = false;
 
 	freenect_set_user(kinectDevice, this);
-	freenect_set_depth_callback(kinectDevice, &grabDepthFrame);
+	if (!bHighResIR) freenect_set_depth_callback(kinectDevice, &grabDepthFrame);
 	freenect_set_video_callback(kinectDevice, &grabVideoFrame);
 
 	startThread(true, false); // blocking, not verbose
@@ -218,7 +220,7 @@ bool ofxKinect::open(string serial) {
 	bGotData = false;
 
 	freenect_set_user(kinectDevice, this);
-	freenect_set_depth_callback(kinectDevice, &grabDepthFrame);
+	if (!bHighResIR) freenect_set_depth_callback(kinectDevice, &grabDepthFrame);
 	freenect_set_video_callback(kinectDevice, &grabVideoFrame);
 
 	startThread(true, false); // blocking, not verbose
@@ -280,9 +282,7 @@ void ofxKinect::update() {
 	}
 
 	if(this->lock()) {
-		int n = width * height;
-
-		depthPixelsRaw = depthPixelsRawBack;
+		if (!bHighResIR) depthPixelsRaw = depthPixelsRawBack;
 		videoPixels = videoPixelsBack;
 
 		// we have done the update
@@ -290,12 +290,12 @@ void ofxKinect::update() {
 
 		this->unlock();
 
-		updateDepthPixels();
+		if (!bHighResIR) updateDepthPixels();
 	}
 
 	if(bUseTexture) {
-		depthTex.loadData(depthPixels.getPixels(), width, height, GL_LUMINANCE);
-		videoTex.loadData(videoPixels.getPixels(), width, height, bIsVideoInfrared?GL_LUMINANCE:GL_RGB);
+		if (!bHighResIR) depthTex.loadData(depthPixels.getPixels(), width, height, GL_LUMINANCE);
+		videoTex.loadData(videoPixels.getPixels(), videoWidth, videoHeight, bIsVideoInfrared?GL_LUMINANCE:GL_RGB);
 		bUpdateTex = false;
 	}
 }
@@ -638,7 +638,7 @@ void ofxKinect::grabVideoFrame(freenect_device *dev, void *video, uint32_t times
 	if(kinect->kinectDevice == dev) {
 		kinect->lock();
 		freenect_frame_mode curMode = freenect_get_current_video_mode(dev);
-		kinect->videoPixelsBack.setFromPixels((unsigned char*)video, width, height, curMode.data_bits_per_pixel/8);
+		kinect->videoPixelsBack.setFromPixels((unsigned char*)video, kinect->videoWidth, kinect->videoHeight, curMode.data_bits_per_pixel/8);
 		kinect->bNeedsUpdate = true;
 		kinect->unlock();
 	}
@@ -651,14 +651,18 @@ void ofxKinect::threadedFunction(){
         freenect_set_led(kinectDevice, (freenect_led_options)ofxKinect::LED_GREEN);
     }
 
-	freenect_frame_mode videoMode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, bIsVideoInfrared?FREENECT_VIDEO_IR_8BIT:FREENECT_VIDEO_RGB);
-	freenect_set_video_mode(kinectDevice, videoMode);
-	freenect_frame_mode depthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, bUseRegistration?FREENECT_DEPTH_REGISTERED:FREENECT_DEPTH_MM);
-	freenect_set_depth_mode(kinectDevice, depthMode);
+    freenect_frame_mode videoMode = freenect_find_video_mode(videoResolution, bIsVideoInfrared ? FREENECT_VIDEO_IR_8BIT : FREENECT_VIDEO_RGB);
+    freenect_set_video_mode(kinectDevice, videoMode);
+    // enable depth only if video is not high resolution IR
+	if (!bHighResIR) {
+        freenect_frame_mode depthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, bUseRegistration?FREENECT_DEPTH_REGISTERED:FREENECT_DEPTH_MM);
+        freenect_set_depth_mode(kinectDevice, depthMode);
+	}
+
 
 	ofLog(OF_LOG_VERBOSE, "ofxKinect: Device %d %s connection opened", deviceId, serial.c_str());
 
-	freenect_start_depth(kinectDevice);
+	if (!bHighResIR) freenect_start_depth(kinectDevice);
 	if(bGrabVideo) {
 		freenect_start_video(kinectDevice);
 	}
@@ -997,5 +1001,6 @@ string ofxKinectContext::nextAvailableSerial() {
 	}
 	return deviceList[getDeviceIndex(id)].serial;
 }
+
 
 
