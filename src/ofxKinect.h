@@ -266,6 +266,12 @@ public:
 	const static int height = 480;
 	float getHeight();
 	float getWidth();
+	
+	int videoWidth;
+	int videoHeight;
+    	float getVideoHeight();
+	float getVideoWidth();
+
 
 /// \section Static global kinect context functions
 
