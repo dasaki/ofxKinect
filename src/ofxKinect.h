@@ -80,7 +80,10 @@ public:
 	/// note: this calculation uses some cpu, leave off if not needed
 	void setRegistration(bool bUseRegistration=false);
 
-	/// open the connection and start grabbing images
+    	/// set the requested video RGB/infrared resolution 1280x1024 / 640x480 
+    	bool setVideoResolution(freenect_resolution newResolution);
+    
+    	/// open the connection and start grabbing images
 	///
 	/// set the id to choose a kinect, see numAvailableDevices()
 	/// if you don't set the id (ie id=-1), the first available kinect will be used
@@ -299,6 +302,7 @@ protected:
 	ofTexture depthTex; ///< the depth texture
 	ofTexture videoTex; ///< the RGB texture
 	bool bGrabberInited;
+	freenect_resolution videoResolution;
 
 	ofPixels videoPixels;
 	ofPixels depthPixels;
