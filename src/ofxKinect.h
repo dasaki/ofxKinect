@@ -19,15 +19,15 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
-    
+
     ----------------------------------------------------------------------------
-    
+
     This project uses libfreenect, copyrighted by the Open Kinect Project using
     the Apache License v2. See the file "APACHE20" in libs/libfreenect.
-    
-    See http://www.openkinect.org & https://github.com/OpenKinect/libfreenect 
+
+    See http://www.openkinect.org & https://github.com/OpenKinect/libfreenect
     for documentation
-    
+
 ==============================================================================*/
 #pragma once
 
@@ -80,17 +80,17 @@ public:
 	/// note: this calculation uses some cpu, leave off if not needed
 	void setRegistration(bool bUseRegistration=false);
 
-    	/// set the requested video RGB/infrared resolution 1280x1024 / 640x480 
-    	bool setVideoResolution(freenect_resolution newResolution);
-    
-    	/// open the connection and start grabbing images
+    /// set the requested video RGB/infrared resolution 1280x1024 / 640x480
+    bool setVideoResolution(freenect_resolution newResolution);
+
+    /// open the connection and start grabbing images
 	///
 	/// set the id to choose a kinect, see numAvailableDevices()
 	/// if you don't set the id (ie id=-1), the first available kinect will be used
 	///
 	/// note: this is the freenct bus id and may change each time the app is run
 	bool open(int id=-1);
-	
+
 	/// open using a kinect unique serial number
 	bool open(string serial);
 
@@ -133,10 +133,10 @@ public:
 	/// get the XYZ accelerometer values
 	///
 	/// ... yes, the kinect has an accelerometer
-	
+
 	/// raw axis values
 	ofPoint getRawAccel();
-	
+
 	/// axis-based gravity adjusted accelerometer values
 	///
 	/// from libfreeenect:
@@ -215,9 +215,9 @@ public:
 
 	/// get the target angle (if the camera is currently moving)
 	float getTargetCameraTiltAngle();
-    
+
 /// \section LED
-    
+
 	enum LedMode {
 		LED_DEFAULT = -1, // yellow when not running, green when running
 		LED_OFF = 0,
@@ -227,7 +227,7 @@ public:
 		LED_BLINK_GREEN = 4,
 		LED_BLINK_YELLOW_RED = 6
 	};
-	
+
     /// set the current led color and/or blink mode,
 	/// only applied while the kinect is open
 	///
@@ -256,7 +256,7 @@ public:
 	/// get the device id
 	/// returns -1 if not connected
 	int getDeviceId();
-	
+
 	/// get the unique serial number
 	/// returns an empty string "" if not connected
 	string getSerial();
@@ -266,18 +266,17 @@ public:
 	const static int height = 480;
 	float getHeight();
 	float getWidth();
-	
+
 	int videoWidth;
 	int videoHeight;
-    	float getVideoHeight();
+    float getVideoHeight();
 	float getVideoWidth();
-
 
 /// \section Static global kinect context functions
 
 	/// print the device list
 	static void listDevices();
-	
+
 	/// get the total number of devices
 	static int numTotalDevices();
 
@@ -294,7 +293,7 @@ public:
 	/// get the id of the next available device,
 	/// returns -1 if nothing found
 	static int nextAvailableId();
-	
+
 	/// get the serial number of the next available device,
 	/// returns an empty string "" if nothing found
 	static string nextAvailableSerial();
@@ -303,11 +302,12 @@ protected:
 
 	int deviceId;	///< -1 when not connected
 	string serial;	///< unique serial number, "" when not connected
-	
+
 	bool bUseTexture;
 	ofTexture depthTex; ///< the depth texture
 	ofTexture videoTex; ///< the RGB texture
 	bool bGrabberInited;
+	bool bHighResIR;
 	freenect_resolution videoResolution;
 
 	ofPixels videoPixels;
@@ -321,10 +321,10 @@ protected:
 	float targetTiltAngleDeg;
 	float currentTiltAngleDeg;
 	bool bTiltNeedsApplying;
-    
+
     int currentLed;
     bool bLedNeedsApplying;
-	
+
 	// for auto connect tries
 	float timeSinceOpen;
 	int lastDeviceId;
@@ -395,7 +395,7 @@ public:
 	/// open a kinect device
 	/// an id of -1 will open the first available
 	bool open(ofxKinect& kinect, int id=-1);
-	
+
 	/// open a kinect device by it's unique serial number
 	bool open(ofxKinect& kinect, string serial);
 
@@ -406,13 +406,13 @@ public:
 	void closeAll();
 
 /// \section Util
-	
+
 	/// (re)build the list of devices
 	void buildDeviceList();
-	
+
 	/// print the device list
 	void listDevices(bool verbose=false);
-	
+
 	/// get the total number of devices
 	int numTotal();
 
@@ -425,25 +425,25 @@ public:
 	/// get the kinect object from a device pointer
 	/// returns NULL if not found
 	ofxKinect* getKinect(freenect_device* dev);
-	
+
 	/// get the deviceList index from an id
 	/// returns -1 if not found
 	int getDeviceIndex(int id);
-	
+
 	/// get the deviceList index from an id
 	/// returns -1 if not found
 	int getDeviceIndex(string serial);
 
 	/// is a device with this id already connected?
 	bool isConnected(int id);
-	
+
 	/// is a device with this serial already connected?
 	bool isConnected(string serial);
 
 	/// get the id of the next available device,
 	/// returns -1 if nothing found
 	int nextAvailableId();
-	
+
 	/// get the serial number of the next available device,
 	/// returns an empty string "" if nothing found
 	string nextAvailableSerial();
@@ -456,9 +456,9 @@ public:
 		string serial;	///< unique serial number
 		int id;			///< freenect bus id
     };
-	
+
 private:
-    
+
 	bool bInited;						///< has the context been initialized?
 	freenect_context* kinectContext;    ///< kinect context handle
 	std::vector<KinectPair> deviceList;	///< list of available devices, sorted by serial lexicographically
